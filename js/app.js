@@ -174,7 +174,108 @@
     return { cls: 'gp-swatch', bg: cfg.style?.fillColor || '#3b82f6' };
   }
 
+  function buildSwatchHtml(geomType, color, outline = false, dashed = false) {
+    const cls = geomType === 'point' ? 'gp-swatch is-point' : geomType === 'line' ? 'gp-swatch is-line' : 'gp-swatch';
+    const style = outline
+      ? `background:transparent;border:2px ${dashed ? 'dashed' : 'solid'} ${color === '#ffffff' ? '#0ea5e9' : color}`
+      : `background:${color}`;
+    return `<span class="${cls}" style="${style}"></span>`;
+  }
+
+  function buildInlineLegendHtml(cfg) {
+    const entries = [];
+    if (cfg.colorMap) {
+      for (const [label, color] of Object.entries(cfg.colorMap)) {
+        const meaning = window.GeoMetadata?.getClassHelp?.(cfg.id, label) || '';
+        entries.push({ label, color, meaning, outline: false, dashed: Boolean(cfg.style?.dashArray) });
+      }
+    } else {
+      const color =
+        cfg.geomType === 'point'
+          ? cfg.pointStyle?.fillColor || '#033c8e'
+          : cfg.geomType === 'line'
+          ? cfg.style?.color || '#0284c7'
+          : cfg.outlineMode
+          ? cfg.style?.color || '#0ea5e9'
+          : cfg.style?.fillColor || '#3b82f6';
+      entries.push({
+        label: cfg.name,
+        color,
+        meaning: cfg.description || window.GeoMetadata?.getEntry?.(cfg.id, cfg)?.whatIsThis || '',
+        outline: Boolean(cfg.outlineMode),
+        dashed: Boolean(cfg.style?.dashArray),
+      });
+    }
+
+    const rows = entries
+      .map(
+        (it) => `
+          <div class="gp-inline-legend-row">
+            ${buildSwatchHtml(cfg.geomType, it.color, it.outline, it.dashed)}
+            <div class="gp-inline-legend-text">
+              <span class="gp-inline-legend-lbl">${escapeHtml(it.label)}</span>
+              ${it.meaning ? `<span class="gp-inline-legend-desc">${escapeHtml(it.meaning)}</span>` : ''}
+            </div>
+          </div>`
+      )
+      .join('');
+
+    return `
+      <div class="gp-inline-legend">
+        <div class="gp-inline-legend-title">
+          <span>Legenda (${entries.length} ${entries.length > 1 ? 'classes' : 'classe'})</span>
+        </div>
+        ${rows}
+      </div>
+    `;
+  }
+
+  function renderFloatingMapLegend() {
+    const box = document.getElementById('mapLegendBox');
+    const body = document.getElementById('mapLegendBody');
+    const title = document.getElementById('mapLegendTitle');
+    if (!box || !body) return;
+    const legends = engine.getActiveLegends();
+    if (!legends.length) {
+      box.classList.remove('visible');
+      body.innerHTML = '';
+      return;
+    }
+    box.classList.add('visible');
+    if (title) title.textContent = `Legenda Ativa (${legends.length})`;
+    body.innerHTML = legends
+      .map((leg) => {
+        const items = leg.swatches
+          .map(
+            (s) => `
+              <div class="gp-inline-legend-row">
+                ${buildSwatchHtml(leg.geomType, s.color, s.outline, s.dashed)}
+                <div class="gp-inline-legend-text">
+                  <span class="gp-inline-legend-lbl">${escapeHtml(s.label)}</span>
+                  ${s.meaning ? `<span class="gp-inline-legend-desc">${escapeHtml(s.meaning)}</span>` : ''}
+                </div>
+              </div>`
+          )
+          .join('');
+        return `
+          <div class="gp-map-legend-group">
+            <div class="gp-map-legend-gname">${escapeHtml(leg.name)}</div>
+            ${items}
+          </div>`;
+      })
+      .join('');
+  }
+
+  document.getElementById('mapLegendToggle')?.addEventListener('click', () => {
+    const box = document.getElementById('mapLegendBox');
+    const chev = document.getElementById('mapLegendChevron');
+    if (!box) return;
+    const collapsed = box.classList.toggle('collapsed');
+    if (chev) chev.textContent = collapsed ? '▸' : '▾';
+  });
+
   function renderLayerDrawer() {
+    renderFloatingMapLegend();
     const body = document.getElementById('drawerBody');
     const countEl = document.getElementById('activeLayerCount');
     const orderCountEl = document.getElementById('orderLayerCount');
@@ -299,6 +400,11 @@
             </div>
           </div>
         `);
+
+        // Legenda inline automática sempre que a camada estiver ativa
+        if (isOn && !st?.loading && !st?.error) {
+          parts.push(buildInlineLegendHtml(l));
+        }
 
         if (optOpen) {
           const curOpacity = Math.round((st?.opacity ?? l.opacity ?? 0.7) * 100);

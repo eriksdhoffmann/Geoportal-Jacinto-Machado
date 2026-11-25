@@ -1048,24 +1048,26 @@ window.GeoLayerEngine = (() => {
     async function resolveLayerGeoJson(cfg, signal = null) {
       if (dataCache.has(cfg.id)) return dataCache.get(cfg.id);
 
-      if (cfg.isLocalData && cfg.id === 'limite_municipal_ibge' && window.JACINTO_LIMIT_GEOJSON) {
+      const bKey = cfg.bundleKey || cfg.id;
+
+      if (cfg.id === 'limite_municipal_ibge' && window.JACINTO_LIMIT_GEOJSON) {
         dataCache.set(cfg.id, window.JACINTO_LIMIT_GEOJSON);
         return window.JACINTO_LIMIT_GEOJSON;
       }
 
-      if (cfg.bundleKey && window.GEOJACINTO_BUNDLE?.[cfg.bundleKey]) {
-        const gj = normalizeGeoJsonToWgs84(window.GEOJACINTO_BUNDLE[cfg.bundleKey]);
+      if (bKey && window.GEOJACINTO_BUNDLE?.[bKey]) {
+        const gj = normalizeGeoJsonToWgs84(window.GEOJACINTO_BUNDLE[bKey]);
         dataCache.set(cfg.id, gj);
         return gj;
       }
 
       const isFileProto = window.location.protocol === 'file:';
 
-      if (isFileProto && cfg.isExtraBundle && cfg.bundleKey) {
+      if (isFileProto && bKey) {
         try {
           await ensureExtraBundleLoaded();
-          if (window.GEOJACINTO_BUNDLE?.[cfg.bundleKey]) {
-            const gj = normalizeGeoJsonToWgs84(window.GEOJACINTO_BUNDLE[cfg.bundleKey]);
+          if (window.GEOJACINTO_BUNDLE?.[bKey]) {
+            const gj = normalizeGeoJsonToWgs84(window.GEOJACINTO_BUNDLE[bKey]);
             dataCache.set(cfg.id, gj);
             return gj;
           }
@@ -1092,6 +1094,19 @@ window.GeoLayerEngine = (() => {
           } catch (err) {
             if (err.name === 'AbortError') throw err;
             lastErr = err;
+          }
+        }
+        // Fallback para bundle extra local se o fetch falhar (ex: servidor local encerrado)
+        if (bKey) {
+          try {
+            await ensureExtraBundleLoaded();
+            if (window.GEOJACINTO_BUNDLE?.[bKey]) {
+              const gj = normalizeGeoJsonToWgs84(window.GEOJACINTO_BUNDLE[bKey]);
+              dataCache.set(cfg.id, gj);
+              return gj;
+            }
+          } catch {
+            // mantém lastErr
           }
         }
         throw lastErr || new Error('Arquivo GeoJSON indisponível');
@@ -1383,17 +1398,15 @@ window.GeoLayerEngine = (() => {
       const tolDeg = 0.0003 * Math.pow(2, Math.max(0, 15 - map.getZoom()));
 
       const coreContextIds = [
-        'bairros_jacinto_machado',
-        'distritos_jacinto_machado',
-        'pd_zoneamento_lc281',
-        'pd_macrozoneamento_lc281',
-        'ibge_setores_censitarios_2022',
-        'incra_sigef_jacinto_machado',
+        'setores_censitarios_ibge',
+        'suscet_inundacao_sgb',
+        'suscet_movimento_massa_sgb',
         'sgb_setores_risco',
-        'ima_bacias_hidrograficas',
-        'funai_terras_indigenas',
-        'ibge_geologia',
-        'ibge_pedologia_solos',
+        'bacias_hidrograficas_ima',
+        'geologia_sgb',
+        'pedologia_sgb',
+        'relevo_sgb',
+        'unidades_conservacao_mma',
       ];
       const targetIds = new Set([...activeLayers.keys(), ...coreContextIds]);
 
@@ -1406,8 +1419,9 @@ window.GeoLayerEngine = (() => {
         const isCoreExtra = !activeLayers.has(id);
 
         let gj = state?.geojson || dataCache.get(id);
-        if (!gj && cfg.bundleKey && window.GEOJACINTO_BUNDLE?.[cfg.bundleKey]) {
-          gj = window.GEOJACINTO_BUNDLE[cfg.bundleKey];
+        const bKey = cfg.bundleKey || cfg.id;
+        if (!gj && bKey && window.GEOJACINTO_BUNDLE?.[bKey]) {
+          gj = window.GEOJACINTO_BUNDLE[bKey];
         }
         if (!gj) continue;
 
@@ -1418,18 +1432,17 @@ window.GeoLayerEngine = (() => {
       }
 
       const priority = {
-        bairros_jacinto_machado: 1,
-        distritos_jacinto_machado: 2,
-        pd_zoneamento_lc281: 3,
-        pd_macrozoneamento_lc281: 4,
-        ibge_setores_censitarios_2022: 5,
-        sgb_setores_risco: 6,
-        fbds_uso_solo: 7,
-        fbds_app: 8,
-        ima_bacias_hidrograficas: 9,
-        funai_terras_indigenas: 10,
-        ibge_geologia: 11,
-        ibge_pedologia_solos: 12,
+        setores_censitarios_ibge: 1,
+        sgb_setores_risco: 2,
+        suscet_inundacao_sgb: 3,
+        suscet_movimento_massa_sgb: 4,
+        fbds_uso_solo: 5,
+        fbds_app: 6,
+        unidades_conservacao_mma: 7,
+        bacias_hidrograficas_ima: 8,
+        geologia_sgb: 9,
+        pedologia_sgb: 10,
+        relevo_sgb: 11,
       };
       results.sort((a, b) => (priority[a.layerId] || 50) - (priority[b.layerId] || 50));
       return results;

@@ -290,11 +290,135 @@ window.GeoMetadata = (() => {
     });
   }
 
+  // Explicações didáticas completas para TODAS as camadas multicor do Geoportal
+  const CLASS_HELP_MAP = {
+    sistema_viario_osm: {
+      'Via Local / Urbana': 'Ruas residenciais, travessas e vias de circulação interna da sede e núcleos urbanos.',
+      'Estrada Municipal / Vicinal': 'Estradas municipais que conectam comunidades rurais, distritos e bairros à sede.',
+      'Estrada Rural / Agrícola': 'Caminhos rurais, acessos a propriedades agrícolas, bananais, arrozais e encostas.',
+    },
+    rodovias_jacinto: {
+      'Estadual (SIE-SC)': 'Rodovias estaduais catarinenses (como SC-108 e SC-285) sob jurisdição da SIE-SC.',
+      'Federal (DNIT)': 'Rodovias federais de ligação regional sob jurisdição do DNIT.',
+      'Rodovia / Acesso Principal': 'Vias estruturais e acessos rodoviários principais do município.',
+    },
+    sgb_setores_risco: {
+      'Muito alto': 'Risco R4 — setor com indícios expressivos de instabilidade ou histórico severo recorrente; atenção prioritária da Defesa Civil.',
+      Alto: 'Risco R3 — elevada probabilidade de deslizamento, inundação ou enxurrada durante chuvas intensas.',
+      'Médio': 'Risco R2 — condições predisponentes moderadas que exigem monitoramento.',
+      Baixo: 'Risco R1 — baixa probabilidade de ocorrência destrutiva no curto prazo.',
+    },
+    suscet_inundacao_sgb: {
+      Alta: 'Planícies fluviais e fundos de vale com elevada propensão natural a inundações, alagamentos e assoreamento.',
+      'Média': 'Terraços fluviais e áreas intermediárias atingíveis em cheias mais intensas.',
+      Baixa: 'Terrenos com baixa propensão natural a inundações.',
+    },
+    suscet_movimento_massa_sgb: {
+      Alta: 'Encostas íngremes e escarpas com alta suscetibilidade a deslizamentos, quedas de blocos e corridas.',
+      'Média': 'Encostas de declividade intermediária com suscetibilidade moderada a escorregamentos.',
+      Baixa: 'Terrenos planos ou colinosos suaves com baixa suscetibilidade natural.',
+    },
+    suscet_bacias_sgb: {
+      Alta: 'Sub-bacias serranas com resposta hidrológica rápida e alto potencial de enxurradas e cheias.',
+      'Média': 'Sub-bacias com resposta hidrológica intermediária.',
+      Baixa: 'Sub-bacias em planície ou relevo suave com menor energia de escoamento.',
+    },
+    feicoes_instabilidade_sgb: {
+      'Paredão rochoso': 'Escarpas verticais e paredões da Serra Geral sujeitos a desplacamento e queda de rochas.',
+      'Campos de blocos': 'Acúmulos de matacões e blocos rochosos nas encostas suscetíveis a rolamento.',
+      'Depósitos de acumulação': 'Depósitos de tálus e colúvio no sopé das encostas sujeitos a rastejo ou escorregamento.',
+      Alagado: 'Áreas permanentemente úmidas ou sujeitas a acúmulo recorrente de água.',
+    },
+    feicoes_pontuais_sgb: {
+      Cicatriz: 'Ponto com cicatriz de escorregamento recente identificada em fotointerpretação (IPT/SGB).',
+      Ravina: 'Ponto com processo erosivo linear / voçoroca capaz de induzir movimentos de massa.',
+    },
+    geologia_sgb: {
+      Gramado: 'Derrames basálticos básicos da Formação Serra Geral (base dos paredões e encostas).',
+      Caxias: 'Rochas vulcânicas ácidas/intermediárias da Formação Serra Geral (topo da escarpa).',
+      Botucatu: 'Arenitos eólicos da Formação Botucatu (importante aquífero na base da serra).',
+      'Rio do Rasto': 'Rochas sedimentares (siltitos, folhelhos e arenitos) da Bacia do Paraná.',
+      'Depósitos colúvio-aluvionares': 'Sedimentos quaternários de fundos de vale e sopé de encostas (mais sujeitos a cheias).',
+      'Depósitos flúvio-lagunares': 'Sedimentos finos argilo-arenosos depositados em planícies fluviais recentes.',
+      'Depósitos de barreira pleistocênica 3 - Depósitos de planície lagunar': 'Depósitos costeiros/planície quaternária no setor leste do município.',
+    },
+    pedologia_sgb: {
+      'Solos Litolicos': 'Solos rasos e pedregosos sobre rocha (Neossolos Litólicos), típicos das encostas íngremes da serra.',
+      Cambissolo: 'Solos pouco desenvolvidos de encostas e morros; exigem manejo conservacionista contra erosão.',
+      'Glei Pouco Humico': 'Solos hidromórficos de várzeas e planícies alagáveis (Gleissolos), muito utilizados na rizicultura.',
+      'Podzolico Vermelho-Amarelo': 'Solos bem desenvolvidos (Argissolos) de colinas e terraços, vocacionados à agricultura.',
+      'Podzolico Vermelho-Escuro': 'Solos profundos e argilosos de boa fertilidade natural em áreas colinosas.',
+      'Não Classificado': 'Áreas urbanas, afloramentos rochosos ou corpos d’água sem classe pedológica definida.',
+    },
+    relevo_sgb: {
+      Escarpas: 'Paredões abruptos da Serra Geral com desníveis superiores a centenas de metros.',
+      Serras: 'Maciços serranos de alta declividade e vales profundamente encaixados.',
+      'Morros altos': 'Elevações acentuadas com vertentes íngremes na transição serra–planície.',
+      'Morros baixos': 'Relevo ondulado a forte ondulado de altitude intermediária.',
+      Morrotes: 'Pequenas elevações residuais com vertentes moderadas.',
+      Colinas: 'Terrenos suavemente ondulados de baixa amplitude altimétrica.',
+      'Planícies e terraços fluviais': 'Áreas planas ao longo dos rios, sujeitas a inundações e onde se concentram a sede e lavouras de arroz.',
+    },
+    declividade_ima: {
+      '0–5% (Plano)': 'Terrenos planos (planícies e várzeas); baixo risco de erosão, porém maior propensão a alagamentos.',
+      '5–12% (Suave)': 'Relevo suave ondulado; favorável à ocupação urbana e mecanização agrícola.',
+      '12–25% (Ondulado)': 'Encostas moderadas; exige controle de drenagem e práticas conservacionistas.',
+      '25–45% (Forte)': 'Encostas íngremes; restrição severa à ocupação e alto potencial erosivo.',
+      '>45% (Escarpado)': 'Áreas escarpadas / APP de declividade (Código Florestal); risco crítico a deslizamentos.',
+    },
+    bacias_hidrograficas_ima: {
+      ARARANGUA: 'Bacia Hidrográfica do Rio Araranguá — abrange a maior parte do território municipal.',
+      MAMPITUBA: 'Bacia Hidrográfica do Rio Mampituba — setor sul/sudoeste limítrofe com Praia Grande e RS.',
+    },
+    fitogeografico_ima: {
+      'Floresta Nebular de Crista / Serra Geral': 'Mata nebular de altitude nos campos e bordas dos cânions da Serra Geral.',
+      'Floresta Tropical Meridional / Encostas': 'Floresta Ombrófila Densa de encostas e vales profundos da Mata Atlântica.',
+      'Floresta Tropical da Planície Quaternária Sul': 'Vegetação florestal originalmente associada às planícies fluviais do Extremo Sul.',
+      'Vegetação de Influência Fluvio-Marinha': 'Áreas de transição hidromórfica em baixadas e várzeas.',
+    },
+    fbds_uso_solo: {
+      'formação florestal': 'Mata Atlântica nativa preservada ou em regeneração (19.344 ha — 44,9% do município).',
+      'formação não florestal': 'Campos de altitude, vegetação campestre natural e brejos (309 ha — 0,7%).',
+      silvicultura: 'Plantios florestais comerciais (eucalipto/pinus) (1.783 ha — 4,1%).',
+      'área antropizada': 'Lavouras (arroz, banana, fumo, milho), pastagens e áreas rurais produtivas (21.125 ha — 49,0%).',
+      'área edificada': 'Sede municipal, núcleos urbanos e áreas construídas (197 ha — 0,5%).',
+      'água': 'Rios principais, açudes e reservatórios superficiais (359 ha — 0,8%).',
+    },
+    fbds_app: {
+      "curso d'água (0 - 10m)": 'Faixa marginal de 30 m de APP ao longo de córregos e riachos de até 10 m de largura.',
+      "curso d'água (10 - 50m)": 'Faixa marginal de 50 m de APP em rios de 10 a 50 m de largura.',
+      "curso d'água (50 - 200m)": 'Faixa marginal de 100 m de APP em trechos fluviais mais largos.',
+      "massa d'água": 'Faixa de proteção no entorno de lagos e reservatórios.',
+      nascente: 'Raio mínimo de 50 m de preservação permanente ao redor de cada nascente.',
+    },
+    unidades_saude_cnes: {
+      'Pública Municipal': 'Unidades Básicas de Saúde (UBS), postos rurais e serviços da rede municipal SUS.',
+      'Sem Fins Lucrativos': 'Entidades filantrópicas / hospitalares conveniadas ao SUS.',
+      'Privada / Conveniada': 'Clínicas, consultórios, laboratórios e farmácias com registro ativo no CNES.',
+    },
+    setores_censitarios_ibge: {
+      Urbana: 'Setores censitários urbanos (58,95% da população — 6.263 habitantes no Censo 2022).',
+      Rural: 'Setores censitários rurais (41,05% da população — 4.361 habitantes no Censo 2022).',
+    },
+  };
+
+  function getClassHelp(layerId, label) {
+    const map = CLASS_HELP_MAP[layerId] || REGISTRY[layerId]?.classHelp || {};
+    if (map[label]) return map[label];
+    const low = String(label || '').toLowerCase();
+    for (const [k, v] of Object.entries(map)) {
+      if (k.toLowerCase() === low) return v;
+    }
+    return '';
+  }
+
   return {
     REGISTRY,
     FIELD_LABELS,
+    CLASS_HELP_MAP,
     makeMeta,
     getEntry,
+    getClassHelp,
     getSourceBadgeMeta,
   };
 })();
