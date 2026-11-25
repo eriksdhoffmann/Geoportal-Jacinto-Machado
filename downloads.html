@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Central de Downloads &amp; Catálogo de Dados — Geoportal Jacinto Machado (SC)</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 50'%3E%3Cpath d='M12.5 32.5L23 47.5L33.5 32.5H12.5Z' fill='%23059669'/%3E%3Ccircle cx='23' cy='20.5' r='17.5' fill='%23033c8e'/%3E%3Ccircle cx='23' cy='20.5' r='9.4' fill='%23ffffff'/%3E%3Ccircle cx='23' cy='20.5' r='3.2' fill='%23f59e0b'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/geoportal.css" />
+  <script>
+    (() => {
+      function getAvailableMapOpener() {
+        try {
+          if (window.opener && !window.opener.closed && window.opener.GeoPortalMapNav) {
+            return window.opener;
+          }
+        } catch {
+          // Cross-origin ou opener indisponível
+        }
+        return null;
+      }
+
+      function handleReturnToMapClick(e, { layerId = '', basemapId = '' } = {}) {
+        if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+          return;
+        }
+        const opener = getAvailableMapOpener();
+        if (!opener) return;
+        e.preventDefault();
+        try {
+          if (layerId) opener.GeoPortalMapNav.activateLayer(layerId);
+          else if (basemapId) opener.GeoPortalMapNav.activateBasemap(basemapId);
+          else opener.GeoPortalMapNav.focusMap();
+        } catch {
+          const targetEl = e.target instanceof Element ? e.target : e.target?.parentElement;
+          const link = targetEl?.closest?.('a[href]');
+          if (link) window.location.href = link.href;
+          return;
+        }
+        try { opener.focus(); } catch {}
+        try { window.close(); } catch {}
+      }
+
+      window.__geoHandleReturnToMapClick = handleReturnToMapClick;
+
+      document.addEventListener('click', (e) => {
+        const targetEl = e.target instanceof Element ? e.target : e.target?.parentElement;
+        if (targetEl?.closest?.('[data-return-to-map]')) {
+          handleReturnToMapClick(e);
+        }
+      });
+    })();
+  </script>
+  <style>
+    html, body { overflow: auto !important; height: auto !important; background: #f1f5f9; }
+    .dl-shell { max-width: 1320px; margin: 0 auto; padding: 20px 18px 44px; }
+    .dl-hero {
+      background: linear-gradient(135deg, #033c8e 0%, #0b5cb8 65%, #074598 100%);
+      color: #ffffff; border-radius: 10px; padding: 20px 24px;
+      border-bottom: 4px solid #f59e0b; margin-bottom: 18px; box-shadow: var(--shadow-md);
+    }
+    .dl-hero h1 { margin: 0 0 6px; font-size: 22px; font-weight: 900; }
+    .dl-hero p { margin: 0 0 14px; font-size: 13.5px; color: rgba(255,255,255,0.92); line-height: 1.5; }
+    .dl-search-box {
+      display: flex; align-items: center; gap: 10px; background: #ffffff;
+      border-radius: 8px; padding: 6px 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.16);
+    }
+    .dl-search-box input { flex: 1; border: none; outline: none; font-size: 14.5px; padding: 6px 4px; color: #0f172a; }
+    .dl-search-clear { border: none; background: #e2e8f0; color: #334155; border-radius: 6px; padding: 4px 10px; font-weight: 700; cursor: pointer; }
+    .dl-layout { display: grid; grid-template-columns: 280px 1fr; gap: 18px; align-items: start; }
+    .dl-sidebar { background: #ffffff; border: 1px solid #dfe3e8; border-radius: 8px; overflow: hidden; position: sticky; top: 16px; box-shadow: var(--shadow-sm); }
+    .dl-side-head { background: #1e2022; color: #ffffff; padding: 11px 14px; font-weight: 800; font-size: 13.5px; }
+    .dl-cat-btn {
+      width: 100%; border: none; border-bottom: 1px solid #eef1f4; background: #ffffff;
+      padding: 10px 14px; text-align: left; display: flex; align-items: center;
+      justify-content: space-between; gap: 8px; cursor: pointer; font-size: 12.5px;
+      font-weight: 700; color: #334155; transition: background 0.14s;
+    }
+    .dl-cat-btn:hover { background: #f1f5f9; color: var(--brand-navy); }
+    .dl-cat-btn.active { background: #eff6ff; color: var(--brand-navy); border-left: 4px solid var(--brand-navy); }
+    .dl-main { min-width: 0; }
+    .dl-filter-bar {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+      gap: 10px; background: #ffffff; border: 1px solid #dfe3e8; border-radius: 8px;
+      padding: 10px 14px; margin-bottom: 14px;
+    }
+    .dl-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .dl-chip { border: 1px solid #cbd5e1; background: #f8fafc; color: #334155; border-radius: 16px; padding: 4px 11px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .dl-chip.active { background: var(--brand-navy); color: #ffffff; border-color: var(--brand-navy); }
+    .dl-card {
+      background: #ffffff; border: 1px solid #dce2e8; border-radius: 8px; padding: 13px 16px;
+      margin-bottom: 10px; display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .dl-card:hover { border-color: var(--brand-blue); box-shadow: var(--shadow-sm); }
+    .dl-card-info { flex: 1; min-width: 0; }
+    .dl-card-title { font-size: 14.5px; font-weight: 800; color: #0f172a; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .dl-card-what { font-size: 12.5px; color: #334155; line-height: 1.45; margin-bottom: 6px; }
+    .dl-card-meta { font-size: 11.5px; color: #64748b; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+    .dl-card-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; flex-shrink: 0; max-width: 340px; }
+    @media (max-width: 900px) {
+      .dl-layout { grid-template-columns: 1fr; }
+      .dl-sidebar { position: static; }
+      .dl-card { flex-direction: column; }
+      .dl-card-actions { max-width: none; justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <header class="gp-header">
+    <div class="gp-brand-group">
+      <a href="index.html" class="gp-logo-link" data-return-to-map="1" title="Voltar ao Mapa Interativo do Geoportal Jacinto Machado">
+        <svg class="gp-geo-pin-svg" viewBox="0 0 46 50" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12.5 32.5L23 47.5L33.5 32.5H12.5Z" fill="#059669"/>
+          <circle cx="23" cy="20.5" r="17.5" fill="#033c8e"/>
+          <circle cx="23" cy="20.5" r="9.4" fill="#ffffff"/>
+          <circle cx="23" cy="20.5" r="3.2" fill="#f59e0b"/>
+        </svg>
+        <div class="gp-geo-wordmark">
+          <div class="gp-geo-top"><span>GEO</span><span class="gp-geo-portal-tag">PORTAL</span></div>
+          <span class="gp-geo-bottom">JACINTO MACHADO</span>
+        </div>
+      </a>
+      <div class="gp-brand-divider" aria-hidden="true"></div>
+      <div class="gp-municipal-lockup">
+        <img src="assets/logo-prefeitura-jacinto-machado.svg" alt="Emblema Geoportal Jacinto Machado" class="gp-municipal-logo" width="38" height="38" />
+        <div class="gp-municipal-text">
+          <span class="gp-municipal-pref">JACINTO MACHADO — SC</span>
+          <span class="gp-municipal-city">Central de Downloads &amp; Metadados</span>
+        </div>
+      </div>
+    </div>
+    <nav class="gp-nav">
+      <a class="gp-nav-btn" href="index.html" data-return-to-map="1" style="text-decoration:none">← Voltar ao Mapa Interativo</a>
+    </nav>
+  </header>
+
+  <main class="dl-shell">
+    <section class="dl-hero">
+      <h1>Central de Downloads e Metadados — Jacinto Machado (SC)</h1>
+      <p>
+        Pesquise todas as camadas geoespaciais, bases cartográficas e levantamentos oficiais disponíveis para <b>Jacinto Machado (IBGE 4208708)</b>,
+        incluindo a <b>Carta de Suscetibilidade SGB/CPRM-IPT (RIGeo)</b>, <b>FBDS (1:5.000)</b>, <b>IBGE Censo 2022</b>, <b>IMA-SC</b>, <b>SIGSC</b>, <b>DataSUS/CNES</b> e <b>OpenStreetMap</b>,
+        consulte os metadados de procedência e baixe em <b>GeoJSON</b> ou <b>CSV (planilha)</b>.
+      </p>
+      <div class="dl-search-box">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" id="dlSearchInput" placeholder="Buscar por camada, tema, órgão (SGB/CPRM, IBGE, FBDS, IMA, SIGSC, CNES, OSM...) ou formato..." autocomplete="off" />
+        <button class="dl-search-clear" id="dlSearchClear">Limpar</button>
+      </div>
+    </section>
+
+    <div class="dl-layout">
+      <aside class="dl-sidebar" id="dlSidebar">
+        <div class="dl-side-head">Categorias Temáticas</div>
+        <div id="dlCategoryList"></div>
+      </aside>
+
+      <section class="dl-main">
+        <div class="dl-filter-bar">
+          <div class="dl-chips" id="dlSourceFilters">
+            <button class="dl-chip active" data-src="ALL">Todas as origens</button>
+            <button class="dl-chip" data-src="Oficial">Oficial</button>
+            <button class="dl-chip" data-src="Científica">Científica</button>
+            <button class="dl-chip" data-src="Colaborativa">Colaborativa (OSM)</button>
+          </div>
+          <div id="dlResultSummary" style="font-size:12.5px;font-weight:700;color:#475569">Carregando...</div>
+        </div>
+        <div id="dlResults"></div>
+      </section>
+    </div>
+  </main>
+
+  <div class="gp-modal-backdrop" id="dlModalBackdrop" role="dialog" aria-modal="true" style="inset:0">
+    <div class="gp-modal">
+      <div class="gp-modal-head">
+        <h2 id="dlModalTitle">Metadados da Camada</h2>
+        <button class="gp-drawer-icon-btn" id="dlModalClose" title="Fechar">×</button>
+      </div>
+      <div class="gp-modal-body" id="dlModalBody"></div>
+    </div>
+  </div>
+
+  <script src="js/limite-jacinto.js"></script>
+  <script src="js/jacinto-bundle.js"></script>
+  <script src="js/jacinto-bundle-extra.js" defer></script>
+  <script src="js/catalog.js"></script>
+  <script src="js/metadata.js"></script>
+  <script src="js/downloads-page.js"></script>
+</body>
+</html>

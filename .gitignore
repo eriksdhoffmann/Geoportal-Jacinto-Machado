@@ -1,0 +1,7 @@
+# Raw downloads & temporary processing artifacts
+data_raw/
+scripts/__pycache__/
+*.pyc
+*.log
+.DS_Store
+Thumbs.db
